@@ -29,7 +29,7 @@ export const userRegister = async (input) => {
 
 export const loginUserDetails = async (token) => {
   try {
-    const response = await api.get("http://localhost:5000/api/user/details", {
+    const response = await api.get("/api/user/details", {
       headers: {
         Authorization: token,
       },
@@ -146,8 +146,6 @@ export const addToGroup = async (token, data) => {
   }
 };
 
-// http://localhost:5000/api/chat/groupremove delete from group
-
 export const deleteFromGroup = async (token, data) => {
   try {
     const response = await api.put("/api/chat/groupremove", data, {
@@ -160,8 +158,6 @@ export const deleteFromGroup = async (token, data) => {
     return error;
   }
 };
-
-//http://localhost:5000/api/messages  //send message
 
 export const sendMessageAPI = async (token, input) => {
   try {

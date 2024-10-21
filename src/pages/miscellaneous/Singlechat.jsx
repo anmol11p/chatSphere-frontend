@@ -19,7 +19,7 @@ import ScrollableChat from "./ScrollableChat";
 import { io } from "socket.io-client";
 import Lottie from "react-lottie";
 import animationData from "../../Animations/Animation - 1729181695694.json";
-const ENDPOINT = "http://localhost:5000/";
+const ENDPOINT = "https://chatsphere-backend-u61t.onrender.com"; // Update this to your Render URL
 var socket, selectedChatCompare;
 
 const SingleChat = ({ fetchAgain, setFetchAgain }) => {
@@ -181,7 +181,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
               aria-label="Back"
             />
             {!selectedChat.isGroupChat ? (
-              <Box display="flex" alignItems="center" >
+              <Box display="flex" alignItems="center">
                 <Text fontSize={{ base: "sm", md: "lg" }}>
                   {getSender(user, selectedChat.users)}
                 </Text>
