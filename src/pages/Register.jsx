@@ -1,11 +1,4 @@
 import React, { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { FaEye, FaUser } from "react-icons/fa";
-import { IoMdEyeOff } from "react-icons/io";
-import { useDispatch } from "react-redux";
-import { toast } from "react-toastify";
-import { setToken } from "../Redux/tokenSlice";
-import { uploadImage, userRegister } from "../api/Authapi";
 import {
   Box,
   Button,
@@ -19,95 +12,106 @@ import {
   VStack,
   Spinner,
 } from "@chakra-ui/react";
+import { FaEye, FaUser } from "react-icons/fa";
+import { IoMdEyeOff } from "react-icons/io";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+import { setToken } from "../Redux/tokenSlice";
+import { uploadImage, userRegister } from "../api/Authapi";
 
 const Register = () => {
-  const [toggle, setToggle] = useState(false);
-  const [pic, setPic] = useState(null);
-  const [loading, setLoading] = useState(false); // Add loading state
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [data, setData] = useState({
     username: "",
     email: "",
     phone: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isPicUploaded, setIsPicUploaded] = useState(false);
+  const [picUrl, setPicUrl] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true); // Set loading to true when submitting
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageUpload = async (file) => {
+    if (!file) return toast.error("Please select an image");
+
+    if (!file.type.startsWith("image/")) {
+      return toast.error("Only image files are allowed");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "chat-app");
+
     try {
-      const dataToSend = {
-        ...data,
-        ...(pic ? { pic } : {}),
-      };
-      const response = await userRegister(dataToSend);
-      if (response.status === 201) {
-        toast.success(response.data.message);
-        dispatch(setToken(response.data.token));
+      const response = await uploadImage(formData);
+      if (response.status === 200) {
+        setPicUrl(response.data.url);
+        setIsPicUploaded(true);
+        toast.success("Image uploaded successfully");
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Image upload failed");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!isPicUploaded) {
+      return toast.error("Please upload your photo");
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const payload = { ...data, pic: picUrl };
+      const res = await userRegister(payload);
+
+      if (res.status === 201) {
+        dispatch(setToken(res.data.token));
+        toast.success(res.data.message);
+        navigate("/");
+
         setData({
           username: "",
           email: "",
           phone: "",
           password: "",
         });
-        navigate("/");
+        setPicUrl(null);
+        setIsPicUploaded(false);
       }
-    } catch (error) {
-      toast.error(error.response.data.message);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Registration failed");
     } finally {
-      setLoading(false); // Set loading to false when done
-    }
-  };
-
-  const handleOnChange = (e) => {
-    const { value, name } = e.target;
-    setData((prevValue) => ({
-      ...prevValue,
-      [name]: value,
-    }));
-  };
-
-  const uploadPhoto = async (pic) => {
-    if (!pic) {
-      toast.error("Please select an image");
-      return;
-    }
-
-    // Check if the file is an image
-    if (pic.type.startsWith("image/")) {
-      const data = new FormData();
-      data.append("file", pic);
-      data.append("upload_preset", "chat-app");
-
-      try {
-        const response = await uploadImage(data);
-        if (response.status === 200) {
-          setPic(response.data.url.toString());
-          toast.success("Image uploaded successfully");
-        } else {
-          toast.error("Failed to upload image");
-        }
-      } catch (error) {
-        toast.error("Error uploading image");
-      }
-    } else {
-      toast.error("Please select a valid image file");
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Flex justify="center" align="center" minH="100vh" bg="gray.50" p={[4, 8]}>
+    <Flex justify="center" align="center" minH="100vh" bg="gray.50" p={6}>
       <Box
-        p={[6, 8]}
+        p={8}
         w="full"
-        maxW={["100%", "400px"]}
+        maxW="400px"
         borderWidth={1}
         borderRadius="lg"
         boxShadow="lg"
         bg="white"
       >
-        <VStack spacing={4} as="form" onSubmit={handleFormSubmit}>
+        <VStack as="form" spacing={4} onSubmit={handleSubmit}>
           <Heading size="lg" textAlign="center">
             Register
           </Heading>
@@ -115,10 +119,9 @@ const Register = () => {
           <FormControl isRequired>
             <FormLabel>Username</FormLabel>
             <Input
-              type="text"
               name="username"
               value={data.username}
-              onChange={handleOnChange}
+              onChange={handleChange}
               placeholder="Enter your username"
               autoComplete="off"
               focusBorderColor="teal.500"
@@ -128,10 +131,10 @@ const Register = () => {
           <FormControl isRequired>
             <FormLabel>Email</FormLabel>
             <Input
-              type="email"
               name="email"
+              type="email"
               value={data.email}
-              onChange={handleOnChange}
+              onChange={handleChange}
               placeholder="Enter your email"
               autoComplete="off"
               focusBorderColor="teal.500"
@@ -139,12 +142,11 @@ const Register = () => {
           </FormControl>
 
           <FormControl isRequired>
-            <FormLabel>Phone No.</FormLabel>
+            <FormLabel>Phone Number</FormLabel>
             <Input
-              type="text"
               name="phone"
               value={data.phone}
-              onChange={handleOnChange}
+              onChange={handleChange}
               placeholder="Enter your phone number"
               autoComplete="off"
               focusBorderColor="teal.500"
@@ -155,19 +157,19 @@ const Register = () => {
             <FormLabel>Password</FormLabel>
             <InputGroup>
               <Input
-                type={toggle ? "text" : "password"}
                 name="password"
+                type={showPassword ? "text" : "password"}
                 value={data.password}
-                onChange={handleOnChange}
+                onChange={handleChange}
                 placeholder="Enter your password"
                 autoComplete="off"
                 focusBorderColor="teal.500"
               />
               <InputRightElement
-                onClick={() => setToggle(!toggle)}
                 cursor="pointer"
+                onClick={() => setShowPassword((prev) => !prev)}
               >
-                {toggle ? <FaEye /> : <IoMdEyeOff />}
+                {showPassword ? <FaEye /> : <IoMdEyeOff />}
               </InputRightElement>
             </InputGroup>
           </FormControl>
@@ -177,7 +179,7 @@ const Register = () => {
             <Input
               type="file"
               accept="image/*"
-              onChange={(e) => uploadPhoto(e.target.files[0])}
+              onChange={(e) => handleImageUpload(e.target.files[0])}
             />
           </FormControl>
 
@@ -185,15 +187,13 @@ const Register = () => {
             type="submit"
             colorScheme="teal"
             width="full"
-            mt={4}
-            isDisabled={loading} // Disable button while loading
+            isDisabled={isSubmitting}
           >
-            {loading ? <Spinner size="sm" /> : "Submit"}{" "}
-            {/* Show spinner when loading */}
+            {isSubmitting ? <Spinner size="sm" /> : "Register"}
           </Button>
 
-          <Button variant="link" colorScheme="teal" as={NavLink} to="/login">
-            Log In
+          <Button as={NavLink} to="/login" variant="link" colorScheme="teal">
+            Already have an account? Log In
           </Button>
         </VStack>
       </Box>
