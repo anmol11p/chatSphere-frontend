@@ -39,7 +39,7 @@ const Register = () => {
     try {
       const dataToSend = {
         ...data,
-        pic: pic,
+        ...(pic ? { pic } : {}),
       };
       const response = await userRegister(dataToSend);
       if (response.status === 201) {
